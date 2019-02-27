@@ -1,0 +1,17 @@
+~*
+*.log
+*.exe
+*.exe~
+urlshort
+tmp/*
+tmp*
+
+# exclude everything under level-db - but include direct children *.xxxx
+level-db/**
+!level-db/*.xxxx
+
+bolt-db
+
+# exclude everything under url-shorts - but include direct children *.xxxx
+url-shorts/**
+!url-shorts/*.xxxx
