@@ -7,9 +7,11 @@ import (
 	"testing"
 )
 
-//
+// This is ridiculous "benchmark" since it operates
+// with only a single file in the directory.
+// No surprise that this is fast.
 func BenchmarkCode(b *testing.B) {
-	storage, err := New(filepath.Join(".", "url-shorts-benchmark"))
+	storage, err := NewFS(filepath.Join(".", "url-shorts-benchmark"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -17,8 +19,12 @@ func BenchmarkCode(b *testing.B) {
 		storage.enc()
 	}
 }
+
+// A more realistic benchmark reveals,
+// that iterating all existing files each time,
+// to find the new maximum is a expletive deleted idea.
 func BenchmarkStore(b *testing.B) {
-	storage, err := New(filepath.Join(".", "url-shorts-benchmark"))
+	storage, err := NewFS(filepath.Join(".", "url-shorts-benchmark"))
 	if err != nil {
 		log.Fatal(err)
 	}

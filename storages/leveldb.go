@@ -1,6 +1,7 @@
 package storages
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/url"
@@ -64,7 +65,33 @@ func (l *levelDBT) Load(encode string) (string, error) {
 
 }
 
-// Dump dumps
-func (l *levelDBT) Dump() {
+// Dump writes
+func (l *levelDBT) Dump(from, to int) (string, error) {
+	var bf bytes.Buffer
+	iter := l.NewIterator(nil, nil)
+	ctr := -1
+	for iter.Next() {
+		ctr++
+		if ctr < from {
+			continue
+		}
+		if ctr > to {
+			break
+		}
 
+		// Remember that the contents of the returned slice should not be modified, and
+		// only valid until the next call to Next.
+		k := iter.Key()
+		v := iter.Value()
+		s := fmt.Sprintf("<a  href='/r/%s' target='red' > key %-20s => val %s  </a> <br>", k, k, v)
+		bf.Write([]byte(s + "\n"))
+
+	}
+	iter.Release()
+	err := iter.Error()
+	if err != nil {
+		bf.Write([]byte("iter errors accumulated: " + err.Error() + "\n"))
+	}
+
+	return bf.String(), nil
 }

@@ -58,3 +58,8 @@ func (s *fileSystemT) Load(encode string) (string, error) {
 	urlBytes, err := ioutil.ReadFile(filepath.Join(s.Root, encode))
 	return string(urlBytes), err
 }
+
+// Dump dummy
+func (s *fileSystemT) Dump(from, to int) (string, error) {
+	return "", nil
+}

@@ -2,19 +2,17 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/zew/urlshort/storages"
 )
 
 // EncodeHandler returns a HandlerFunc for encoding urls
 // encapsulating the storage in a closure.
-func EncodeHandler(storage storages.IStorage) http.Handler {
+func EncodeHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		if url := r.FormValue("url"); url != "" {
-			enc, err := storage.Save(url)
+			enc, err := st.Save(url)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -27,10 +25,10 @@ func EncodeHandler(storage storages.IStorage) http.Handler {
 
 // DecodeHandler returns a HandlerFunc for retrieving urls by code
 // encapsulating the storage in a closure.
-func DecodeHandler(storage storages.IStorage) http.Handler {
+func DecodeHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Path[len("/dec/"):]
-		url, err := storage.Load(code)
+		url, err := st.Load(code)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
@@ -43,10 +41,10 @@ func DecodeHandler(storage storages.IStorage) http.Handler {
 
 // RedirectHandler returns a HandlerFunc for redirecting to the encoded URL,
 // encapsulating the storage in a closure.
-func RedirectHandler(storage storages.IStorage) http.Handler {
+func RedirectHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Path[len("/r/"):]
-		url, err := storage.Load(code)
+		url, err := st.Load(code)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("URL Not Found. Error: " + err.Error() + "\n"))
@@ -58,27 +56,11 @@ func RedirectHandler(storage storages.IStorage) http.Handler {
 }
 
 // DumpHandler dumps
-func DumpHandler(l *leveldb.DB) http.Handler {
+func DumpHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
-
 		w.Header().Set("Content-Type", "text/html")
-
-		iter := l.NewIterator(nil, nil)
-		for iter.Next() {
-			// Remember that the contents of the returned slice should not be modified, and
-			// only valid until the next call to Next.
-			k := iter.Key()
-			v := iter.Value()
-			s := fmt.Sprintf("<a  href='/r/%s' target='red' > key %-20s => val %s  </a> <br>", k, k, v)
-			w.Write([]byte(s + "\n"))
-
-		}
-		iter.Release()
-		err := iter.Error()
-		if err != nil {
-			w.Write([]byte("iter errors accumulated: " + err.Error() + "\n"))
-		}
-
+		str, _ := st.Dump(0, 100)
+		w.Write([]byte(str))
 	}
 	return http.HandlerFunc(handleFunc)
 }

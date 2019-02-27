@@ -16,36 +16,37 @@ func main() {
 	//
 
 	//
-	storage1, err := storages.NewFS(filepath.Join(".", "url-shorts"))
+	store1, err := storages.NewFS(filepath.Join(".", "url-shorts"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	_ = storage1
+	_ = store1
 
-	storage2, err := storages.NewBoltDB(filepath.Join(".", "bolt-db"))
+	store2, err := storages.NewBoltDB(filepath.Join(".", "bolt-db"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer storage2.DB.Close()
-	_ = storage2
+	defer store2.DB.Close()
+	_ = store2
 
-	storage3, err := storages.NewLevelDB(filepath.Join(".", "level-db"))
+	store3, err := storages.NewLevelDB(filepath.Join(".", "level-db"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer storage3.DB.Close()
-	_ = storage3
+	defer store3.DB.Close()
+	_ = store3
 
 	//
 	//
-	var activeStorage storages.IStorage
-	activeStorage = storage3
+	var activeStore storages.IStore
+	activeStore = store3
 
-	http.Handle("/enc", handlers.EncodeHandler(activeStorage))
-	http.Handle("/dec", handlers.DecodeHandler(activeStorage))
-	http.Handle("/dump", handlers.DumpHandler(storage3.DB))
+	http.Handle("/enc", handlers.EncodeHandler(activeStore))
+	http.Handle("/dec/", handlers.DecodeHandler(activeStore))
 
-	http.Handle("/r/", handlers.RedirectHandler(activeStorage))
+	http.Handle("/dump", handlers.DumpHandler(activeStore))
+
+	http.Handle("/r/", handlers.RedirectHandler(activeStore))
 
 	port := os.Getenv("PORT")
 	if port == "" {
