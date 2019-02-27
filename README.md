@@ -5,7 +5,7 @@ and stores the URL under this key into a database.
 
 The key can then be used to retrieve the URL  
 from the database.
-Or to be forwarded / redirected to the URL.
+Or to forward/redirect to the URL.
 
 ## Storage Engines
 
@@ -22,8 +22,8 @@ The LevelDB storage is workable and yields some encouraging benchmark results.
 
 ### Store/Save
 
-    localhost:8084/enc/https://www.wikipedia.org?h=wik1
-    localhost:8084/enc/https://en.wikipedia.org/wiki/Battle_of_San_Patricio?h=wik2
+    localhost:8084/enc?url=https://www.wikipedia.org?h=wik1
+    localhost:8084/enc?url=https://en.wikipedia.org/wiki/Battle_of_San_Patricio?h=wik2
 
 ### Check all
 
@@ -40,9 +40,26 @@ The LevelDB storage is workable and yields some encouraging benchmark results.
 
 ## Benchmark LevelDB
 
-8 microseconds per saving operation
-125.000 inserts per second.
+8 microseconds per saving operation -  
+ 125.000 inserts per second.
 
-5 microseconds per loading operation
-200.000 loads per second.
+5 microseconds per loading operation -  
+ 200.000 loads per second.
 
+## Database considerations
+
+Possible database backends - LevelDB vs BoldDB
+
+LevelDB and its derivatives (RocksDB, HyperLevelDB) underlying structure is a log-structured merge-tree (LSM tree).  
+ An LSM tree optimizes random writes by using a write ahead log and multi-tiered, sorted files called SSTables.  
+ Bolt uses a B+tree internally and only a single file.
+
+https://github.com/etcd-io/bbolt
+
+https://github.com/syndtr/goleveldb
+
+### Other
+
+https://github.com/tidwall/buntdb based on https://github.com/tidwall/btree
+
+https://github.com/dgraph-io/badger
