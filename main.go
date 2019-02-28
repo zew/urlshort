@@ -34,6 +34,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer store3.DB.Close()
+	defer store3.Lf.Close()
 	_ = store3
 
 	//

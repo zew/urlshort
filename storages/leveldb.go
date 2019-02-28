@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -13,6 +16,9 @@ import (
 type levelDBT struct {
 	Root string
 	*leveldb.DB
+
+	Lf *os.File    // "transaction log"
+	L  *log.Logger // "transaction logger"
 }
 
 // NewLevelDB creates and returns a new level db
@@ -24,7 +30,14 @@ func NewLevelDB(filename string) (*levelDBT, error) {
 	l := &levelDBT{}
 	l.Root = filename
 	l.DB = db
+	l.Lf, err = os.OpenFile(filepath.Join(filename, "insert.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening logfile: %v", err)
+	}
+	l.L = log.New(l.Lf, "", log.Ldate)
+
 	// defer l.DB.Close()
+	// defer l.Lf.Close()
 	log.Printf("levelDB creation finished")
 	return l, nil
 }
@@ -39,6 +52,7 @@ func (l *levelDBT) enc(strURL string) (string, error) {
 	if p == "" {
 		return "", errors.Errorf("parameter h cannot be empty")
 	}
+	p = strings.Join(strings.Fields(p), "") // remove all spaces
 	// encode := strconv.FormatUint(uint64(next+1), 36)
 	return p, nil
 }
@@ -50,6 +64,9 @@ func (l *levelDBT) Save(url string) (string, error) {
 		return encode, err
 	}
 	err = l.DB.Put([]byte(encode), []byte(url), nil)
+	if err == nil {
+		l.L.Printf("%v %v", encode, url)
+	}
 	return encode, err
 }
 
