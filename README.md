@@ -9,14 +9,21 @@ Or to forward/redirect to the URL.
 
 ## Storage Engines
 
-The filesystem storage is from someone else.
-The implementation is counting all existing files on each insert.
-Dont use it.
+The LevelDB storage is workable and yields some encouraging benchmark results.  
+Since wikipedia says, LevelDB is susceptible to corruption.  
+Maybe golang implementation of LevelDB fares better? Tell me, if you know.  
+Until then, we write all inserts into a parallel logfile.  
+We also take care cleanly close LevelDB after HTTP server crash or regular application termination.
 
-The BoltDB storage is not fully implemented.
-BoltDB is supposed to be slightly better at retrieval than at insert.
+The BoltDB storage is not fully implemented.  
+BoltDB is supposed to be slightly better at retrieval than at insert.  
+You have to implement
 
-The LevelDB storage is workable and yields some encouraging benchmark results.
+    Save(string) (string, error)
+    Load(string) (string, error)
+    Dump(int, int) (string, error)
+
+in order to use BoltDB.
 
 ## Example
 
@@ -42,9 +49,13 @@ The LevelDB storage is workable and yields some encouraging benchmark results.
 
 8 microseconds per saving operation -  
  125.000 inserts per second.
+ 
+However, our safety insert logs slows things down.
+
 
 5 microseconds per loading operation -  
  200.000 loads per second.
+
 
 ## Database considerations
 

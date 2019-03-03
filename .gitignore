@@ -7,11 +7,11 @@ tmp/*
 tmp*
 
 # exclude everything under level-db - but include direct children *.xxxx
-level-db/**
-!level-db/*.xxxx
+storages/level-db/**
+!storages/level-db/*.xxxx
 
-bolt-db
+storages/bolt-db
 
 # exclude everything under url-shorts - but include direct children *.xxxx
-url-shorts/**
-!url-shorts/*.xxxx
+storages/url-shorts/**
+!storages/url-shorts/*.xxxx

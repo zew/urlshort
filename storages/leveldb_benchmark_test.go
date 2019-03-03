@@ -9,22 +9,22 @@ import (
 )
 
 func BenchmarkLevelDBStore(b *testing.B) {
-	storage, err := NewLevelDB(filepath.Join(".", "tmp-leveldb-benchmark"))
+	storage, closeFunc, err := NewLevelDB(filepath.Join(".", "tmp-leveldb-benchmark"))
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer storage.DB.Close()
+	defer closeFunc()
 
 	for i := 0; i < b.N; i++ {
 		storage.Save(fmt.Sprintf("http://www.abc%v.com?h=%v", i, i))
 	}
 }
 func BenchmarkLevelDBRetrieve(b *testing.B) {
-	storage, err := NewLevelDB(filepath.Join(".", "tmp-leveldb-benchmark"))
+	storage, closeFunc, err := NewLevelDB(filepath.Join(".", "tmp-leveldb-benchmark"))
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer storage.DB.Close()
+	defer closeFunc()
 	b.Logf("Benachmarking %20v", b.N)
 
 	// Fill
@@ -45,4 +45,5 @@ func BenchmarkLevelDBRetrieve(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+
 }

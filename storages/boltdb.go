@@ -24,10 +24,17 @@ func NewBoltDB(filename string) (*boltDBT, error) {
 	b.Root = filename
 	b.DB = db
 	// defer b.DB.Close()
-	log.Printf("boltDB creation finished")
+	log.Printf("boltDB  creation finished")
 	return b, nil
 }
 
+// This is just an usage example
+//
+// You have to implement
+//     Save(string) (string, error)
+//     Load(string) (string, error)
+//     Dump(int, int) (string, error)
+// in order to use it
 func (b *boltDBT) run() {
 	ufunc := func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucket([]byte("MyBucket"))

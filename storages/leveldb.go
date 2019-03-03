@@ -22,7 +22,7 @@ type levelDBT struct {
 }
 
 // NewLevelDB creates and returns a new level db
-func NewLevelDB(filename string) (*levelDBT, error) {
+func NewLevelDB(filename string) (*levelDBT, func(), error) {
 	db, err := leveldb.OpenFile(filename, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -36,10 +36,25 @@ func NewLevelDB(filename string) (*levelDBT, error) {
 	}
 	l.L = log.New(l.Lf, "", log.Ldate)
 
-	// defer l.DB.Close()
-	// defer l.Lf.Close()
+	//
+	// Instead of calling:
+	//     defer l.DB.Close()
+	//     defer l.Lf.Close()
+	//
+	// Only *one* receiving channel is triggered by the OS.
+	// And we already need such channel in main().
+	// Thus we cannot spawn a goroutine here, waiting for it.
+	// Instead we return a 'cancel' func to be called later from main().
+	closingFunc := func() {
+		log.Printf("closing leveldb files start")
+		l.DB.Close()
+		l.Lf.Close()
+		log.Printf("closing leveldb files stop")
+	}
+
 	log.Printf("levelDB creation finished")
-	return l, nil
+	return l, closingFunc, nil
+
 }
 
 // Enc returns the h argument of a URL
