@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/zew/urlshort/handlers"
@@ -23,17 +24,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	store2, err := storages.NewBoltDB(filepath.Join(".", "storages", "bolt-db"))
+	store2, closeBoltDB, err := storages.NewBoltDB(filepath.Join(".", "storages", "bolt-db"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer store2.DB.Close()
-	_ = store2
 
 	//
 	//
 	var activeStore storages.IStore
-	activeStore = store1
+	var closingFunc func()
+
+	db := strings.ToLower(os.Getenv("DB"))
+	if db == "boltdb" {
+		log.Printf("using boltDB")
+		activeStore = store2
+		closingFunc = closeBoltDB
+	} else {
+		activeStore = store1
+		closingFunc = closeLevelDB
+	}
 
 	http.Handle("/enc", handlers.EncodeHandler(activeStore))
 	http.Handle("/dec/", handlers.DecodeHandler(activeStore))
@@ -96,7 +105,7 @@ func main() {
 			}
 			break
 		}
-		closeLevelDB()
+		closingFunc()
 		closeRes <- true
 	}()
 

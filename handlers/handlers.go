@@ -27,6 +27,7 @@ func EncodeHandler(st storages.IStore) http.Handler {
 // encapsulating the storage in a closure.
 func DecodeHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
 		code := r.URL.Path[len("/dec/"):]
 		url, err := st.Load(code)
 		if err != nil {
@@ -35,6 +36,15 @@ func DecodeHandler(st storages.IStore) http.Handler {
 			return
 		}
 		w.Write([]byte(url))
+		w.Write([]byte("<br>\n"))
+
+		str, err := st.Dump(0, 100)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			w.Write([]byte("<br>\n"))
+		}
+		w.Write([]byte(str))
+
 	}
 	return http.HandlerFunc(handleFunc)
 }
@@ -59,7 +69,11 @@ func RedirectHandler(st storages.IStore) http.Handler {
 func DumpHandler(st storages.IStore) http.Handler {
 	handleFunc := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		str, _ := st.Dump(0, 100)
+		str, err := st.Dump(0, 100)
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			w.Write([]byte("<br>\n"))
+		}
 		w.Write([]byte(str))
 	}
 	return http.HandlerFunc(handleFunc)

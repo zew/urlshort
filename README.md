@@ -9,21 +9,32 @@ Or to forward/redirect to the URL.
 
 ## Storage Engines
 
-The LevelDB storage is workable and yields some encouraging benchmark results.  
-Since wikipedia says, LevelDB is susceptible to corruption.  
-Maybe golang implementation of LevelDB fares better? Tell me, if you know.  
-Until then, we write all inserts into a parallel logfile.  
-We also take care cleanly close LevelDB after HTTP server crash or regular application termination.
+The LevelDB and BoltDB storages are workable and yield interesting benchmark results.  
 
-The BoltDB storage is not fully implemented.  
 BoltDB is supposed to be slightly better at retrieval than at insert.  
-You have to implement
+BoltDB's insertion speed seems relatively bad.
+That's because it's flushed/synced after each insert.
 
-    Save(string) (string, error)
-    Load(string) (string, error)
-    Dump(int, int) (string, error)
+LevelDB is flushed/synced after an unclear number of inserts.  
+If we flush/sync on _each_ write, performance breaks down too.
 
-in order to use BoltDB.
+This is expected behavior - compare the C implementation docs:  
+https://github.com/google/leveldb/blob/master/doc/index.md
+
+Also the internal implementation notes:  
+https://github.com/google/leveldb/blob/master/doc/impl.md
+
+LevelDB is susceptible to corruption.  
+Use Recover() when corrupted (not implemented).
+
+A parallel logfile (search code for `transaction log`) was coded, but discarded.  
+There are levelDB journal files. They can be processed by https://godoc.org/github.com/syndtr/goleveldb/leveldb/journal.
+
+    The wire format allows for limited recovery in the face of data corruption:  
+    on a format error (such as a checksum mismatch), the reader moves to the next block  
+    and looks for the next full or first chunk.
+
+We cleanly close databases after HTTP server crash or regular application termination.
 
 ## Example
 
@@ -47,15 +58,28 @@ in order to use BoltDB.
 
 ## Benchmark LevelDB
 
-8 microseconds per saving operation -  
- 125.000 inserts per second.
- 
-However, our safety insert logs slows things down.
+8-11 microseconds per saving operation -  
+ >90.000 inserts per second.
 
+3-5 microseconds per loading operation -  
+ >200.000 loads per second.
 
-5 microseconds per loading operation -  
- 200.000 loads per second.
+### C implementation
 
+Source: https://github.com/google/leveldb
+
+    fillseq      :       1.765 micros/op;   62.7 MB/s
+    fillsync     :     268.409 micros/op;    0.4 MB/s (10000 ops)
+    fillrandom   :       2.460 micros/op;   45.0 MB/s
+    overwrite    :       2.380 micros/op;   46.5 MB/s
+
+## Benchmark BoltDB
+
+2.500 microseconds per saving operation -  
+ 400 inserts per second.
+
+2 microseconds per loading operation -  
+ 500.000 loads per second.
 
 ## Database considerations
 

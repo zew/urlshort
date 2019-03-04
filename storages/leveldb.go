@@ -5,36 +5,48 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 )
 
 type levelDBT struct {
 	Root string
 	*leveldb.DB
-
-	Lf *os.File    // "transaction log"
-	L  *log.Logger // "transaction logger"
 }
 
 // NewLevelDB creates and returns a new level db
 func NewLevelDB(filename string) (*levelDBT, func(), error) {
-	db, err := leveldb.OpenFile(filename, nil)
+
+	var (
+		db    *leveldb.DB
+		store storage.Storage
+		err   error
+	)
+
+	// We dont use following, as we cannot set any options
+	// db, err = leveldb.OpenFile(filename, nil)
+
+	// Instead, we use requires  store.Close() at the end
+	store, err = storage.OpenFile(filename, false)
 	if err != nil {
 		log.Fatal(err)
 	}
+	o := &opt.Options{}
+	// o.BlockSize = 2 >> 11  // increas/decrease blocksize
+	// o.Compression = opt.NoCompression
+	db, err = leveldb.Open(store, o)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//
 	l := &levelDBT{}
 	l.Root = filename
 	l.DB = db
-	l.Lf, err = os.OpenFile(filepath.Join(filename, "insert.log"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening logfile: %v", err)
-	}
-	l.L = log.New(l.Lf, "", log.Ldate)
 
 	//
 	// Instead of calling:
@@ -46,9 +58,9 @@ func NewLevelDB(filename string) (*levelDBT, func(), error) {
 	// Thus we cannot spawn a goroutine here, waiting for it.
 	// Instead we return a 'cancel' func to be called later from main().
 	closingFunc := func() {
-		log.Printf("closing leveldb files start")
+		// log.Printf("closing leveldb files start")
+		store.Close()
 		l.DB.Close()
-		l.Lf.Close()
 		log.Printf("closing leveldb files stop")
 	}
 
@@ -78,23 +90,22 @@ func (l *levelDBT) Save(url string) (string, error) {
 	if err != nil {
 		return encode, err
 	}
-	err = l.DB.Put([]byte(encode), []byte(url), nil)
-	if err == nil {
-		l.L.Printf("%v %v", encode, url)
-	}
+
+	var wo = opt.WriteOptions{Sync: false}
+	// wo.Sync = true  // this makes inserts a thousand times slower
+
+	err = l.DB.Put([]byte(encode), []byte(url), &wo)
 	return encode, err
 }
 
 // Load takes hash and retrieves the corresponding url.
 func (l *levelDBT) Load(encode string) (string, error) {
-	// urlBytes, err := ioutil.ReadFile(filepath.Join(s.Root, encode))
 	data, err := l.DB.Get([]byte(encode), nil)
 	if err != nil {
 		return "", err
 	}
 	s := fmt.Sprintf("%s", data) // force new allocation
 	return s, nil
-
 }
 
 // Dump writes
@@ -115,15 +126,10 @@ func (l *levelDBT) Dump(from, to int) (string, error) {
 		// only valid until the next call to Next.
 		k := iter.Key()
 		v := iter.Value()
-		s := fmt.Sprintf("<a  href='/r/%s' target='red' > key %-20s => val %s  </a> <br>", k, k, v)
-		bf.Write([]byte(s + "\n"))
-
+		s := fmt.Sprintf("<a  href='/r/%s' target='red' > key %-20s => val %s  </a> <br>\n", k, k, v)
+		bf.WriteString(s)
 	}
 	iter.Release()
 	err := iter.Error()
-	if err != nil {
-		bf.Write([]byte("iter errors accumulated: " + err.Error() + "\n"))
-	}
-
-	return bf.String(), nil
+	return bf.String(), err
 }
