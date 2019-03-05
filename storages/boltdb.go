@@ -81,10 +81,7 @@ func (l *boltDBT) Save(url string) (string, error) {
 		if err != nil {
 			return fmt.Errorf("put error %s - %s : %v", k, v, err)
 		}
-		// err = tx.Commit()
-		// if err != nil {
-		// 	return fmt.Errorf("commit error %s - %s : %v", k, v, err)
-		// }
+		// err = tx.Commit() // this is an auto-commit environment; no tx handling allowed or necessary
 		return nil
 	}
 	err = l.DB.Update(ufunc)

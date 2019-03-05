@@ -14,6 +14,8 @@ The LevelDB and BoltDB storages are workable and yield interesting benchmark res
 BoltDB is supposed to be slightly better at retrieval than at insert.  
 BoltDB's insertion speed seems relatively bad.
 That's because it's flushed/synced after each insert.
+If we pack batched of 1000 inserts between syncs,
+BoltDB reaches 300.000 inserts per second.
 
 LevelDB is flushed/synced after an unclear number of inserts.  
 If we flush/sync on _each_ write, performance breaks down too.
@@ -77,6 +79,9 @@ Source: https://github.com/google/leveldb
 
 2.500 microseconds per saving operation -  
  400 inserts per second.
+
+3.300 microseconds per batch-of-1000 saving operation -  
+ yielding 330.000 inserts per second.
 
 2 microseconds per loading operation -  
  500.000 loads per second.
